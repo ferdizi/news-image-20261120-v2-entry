@@ -440,6 +440,11 @@ function drawText(
 function drawTextCentered(cv: Canvas, s: string, cx: number, y: number, scale: number, c: RGB, a = 1): void {
   drawText(cv, s, cx - textWidth(s, scale) / 2, y, scale, c, a);
 }
+function drawTextBold(cv: Canvas, s: string, x: number, y: number, scale: number, c: RGB, a = 1): void {
+  // double-strike: 2px strokes stay legible when the poster is shown small
+  drawText(cv, s, x, y, scale, c, a);
+  drawText(cv, s, x + 1, y, scale, c, a);
+}
 function wrapText(s: string, maxChars: number): string[] {
   const words = s.split(" ");
   const lines: string[] = [];
@@ -577,7 +582,7 @@ function drawMap(cv: Canvas): void {
   cv.rect(x + w, y - 2, 2, h + 4, GOLD, 0.9);
   // map corner labels
   drawText(cv, "ATLANTIC", x + 150, y + h - 22, 1, hex("#cfe8ec"), 0.8);
-  drawText(cv, "PACIFIC", x + 46, y + 74, 1, hex("#cfe8ec"), 0.8);
+  drawText(cv, "PACIFIC", x + 78, y + 132, 1, hex("#cfe8ec"), 0.8);
   drawText(cv, "INDIAN OCEAN", x + 640, y + h - 60, 1, hex("#cfe8ec"), 0.8);
 }
 
@@ -1272,7 +1277,7 @@ function drawBanner(cv: Canvas): void {
   drawTextCentered(
     cv,
     "FRIDAY 20 NOVEMBER 2026 — 36 STORIES · 7 REGIONS · EVERY ITEM DATE-CHECKED",
-    W / 2, 116, 1, hex("#f4efe0"),
+    W / 2, 116, 2, hex("#f4efe0"),
   );
   // seven-fronts strip
   const fronts = ["EUROPE", "MIDDLE EAST", "N. AMERICA", "ASIA", "LATIN AMERICA", "AFRICA", "OCEANIA"];
@@ -1290,14 +1295,14 @@ function drawColumns(cv: Canvas): void {
   const colW = 238;
   const gap = 8;
   const headers = ["EUROPE", "MIDDLE EAST · N. AMERICA", "N. AMERICA · ASIA", "ASIA · WORLD"];
-  const top = 656;
-  const briefH = 32;
+  const top = 652;
+  const briefH = 34;
   for (let c = 0; c < 4; c++) {
     const x0 = 24 + c * (colW + gap);
     // column header
-    drawText(cv, headers[c], x0, top, 1, GOLD_DARK);
+    drawTextBold(cv, headers[c], x0, top, 1, GOLD_DARK);
     cv.hline(x0, x0 + colW, top + 10, GOLD, 0.8);
-    if (c > 0) cv.vline(x0 - 4, top, top + 9 * briefH + 14, hex("#c9bfa5"), 0.8);
+    if (c > 0) cv.vline(x0 - 4, top, top + 9 * briefH + 12, hex("#c9bfa5"), 0.8);
     for (let r = 0; r < 9; r++) {
       const b = BRIEFS[c * 9 + r];
       const by = top + 14 + r * briefH;
@@ -1313,14 +1318,16 @@ function drawColumns(cv: Canvas): void {
       drawText(cv, b.head, tx, by, 2, INK);
       const lines = wrapText(b.body, 34).slice(0, 2);
       for (let li = 0; li < lines.length; li++) {
-        drawText(cv, lines[li], tx, by + 16 + li * 8, 1, INK_SOFT);
+        drawTextBold(cv, lines[li], tx, by + 16 + li * 8, 1, INK_SOFT);
       }
+      // hairline separating this brief from the next row
+      if (r < 8) cv.hline(x0, x0 + colW, by + 32, hex("#d8cdb2"), 0.5);
     }
   }
 }
 
 function drawFooter(cv: Canvas): void {
-  const y0 = 960;
+  const y0 = 970;
   cv.rect(24, y0, W - 48, 1, GOLD, 0.9);
   // market ticker: five sparklines with real closing figures
   const tickers: { name: string; val: string; pts: number[]; down: boolean }[] = [
@@ -1335,11 +1342,11 @@ function drawFooter(cv: Canvas): void {
     const t = tickers[i];
     const x0 = 24 + i * tw;
     drawText(cv, t.name, x0 + 4, y0 + 8, 1, INK_SOFT);
-    drawText(cv, t.val, x0 + 4, y0 + 18, 1, RED);
+    drawText(cv, t.val, x0 + 4 + textWidth(t.name, 1) + 10, y0 + 8, 1, RED);
     const sx0 = x0 + 4;
     const sx1 = x0 + tw - 8;
-    const sy0 = y0 + 32;
-    const sy1 = y0 + 46;
+    const sy0 = y0 + 22;
+    const sy1 = y0 + 34;
     // gridlines
     cv.hline(sx0, sx1, sy0, hex("#c9bfa5"), 0.6);
     cv.hline(sx0, sx1, sy1, hex("#c9bfa5"), 0.6);
@@ -1350,13 +1357,13 @@ function drawFooter(cv: Canvas): void {
     cv.polyline(pts, RED, 2, 0.95);
     const last = pts[pts.length - 1];
     cv.circle(last[0], last[1], 3, RED);
-    if (i < 4) cv.vline(x0 + tw - 2, y0 + 6, y0 + 48, hex("#c9bfa5"), 0.7);
+    if (i < 4) cv.vline(x0 + tw - 2, y0 + 6, y0 + 36, hex("#c9bfa5"), 0.7);
   }
   // source line
   drawTextCentered(
     cv,
     "SOURCES: REUTERS · AP · BLOOMBERG · IMD · ICJ · IEA · SEC FILINGS — ALL ITEMS DATED 20 NOVEMBER 2026",
-    W / 2, 1010, 1, INK_SOFT,
+    W / 2, y0 + 40, 1, INK_SOFT,
   );
 }
 
@@ -1386,11 +1393,11 @@ function render(): Canvas {
   const cameos: { cx: number; cy: number; r: number; num: number; label: string; scene: (c: Canvas, x: number, y: number, r: number) => void; px: number; py: number }[] = [
     { cx: 480, cy: 320, r: 100, num: 1, label: "KYIV", scene: sceneKyiv, px: project(30, 50)[0], py: project(30, 50)[1] },
     { cx: 170, cy: 480, r: 80, num: 2, label: "NVIDIA", scene: sceneNvidia, px: project(-122, 37)[0], py: project(-122, 37)[1] },
-    { cx: 500, cy: 560, r: 75, num: 3, label: "ICJ", scene: sceneICJ, px: project(4, 52)[0], py: project(4, 52)[1] },
+    { cx: 490, cy: 505, r: 75, num: 3, label: "ICJ", scene: sceneICJ, px: project(4, 52)[0], py: project(4, 52)[1] },
     { cx: 740, cy: 290, r: 80, num: 4, label: "HORMUZ", scene: sceneHormuz, px: project(56, 26)[0], py: project(56, 26)[1] },
     { cx: 810, cy: 480, r: 80, num: 5, label: "AKVAN", scene: sceneAkvan, px: project(85, 19)[0], py: project(85, 19)[1] },
     { cx: 630, cy: 435, r: 75, num: 6, label: "COP31", scene: sceneCOP31, px: project(30, 36)[0], py: project(30, 36)[1] },
-    { cx: 930, cy: 600, r: 70, num: 7, label: "PERU", scene: scenePeru, px: project(140, -25)[0], py: project(140, -25)[1] },
+    { cx: 930, cy: 590, r: 70, num: 7, label: "PERU", scene: scenePeru, px: project(140, -25)[0], py: project(140, -25)[1] },
   ];
   for (const cm of cameos) {
     cm.scene(cv, cm.cx, cm.cy, cm.r);
